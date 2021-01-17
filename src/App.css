@@ -36,3 +36,12 @@
     transform: rotate(360deg);
   }
 }
+
+select {
+  width: 100px;
+  height: 50px;
+}
+
+input.error {
+  color: red;
+}
