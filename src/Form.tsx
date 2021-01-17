@@ -45,7 +45,7 @@ interface SubFormProps {
   onBlur: () => void;
   error: boolean;
   clearError: () => void;
-  setIsValid: (isValid: boolean) => void;
+  setValidator: (validator: (url: string) => boolean) => void;
 }
 
 const TelephoneForm = ({
@@ -55,7 +55,7 @@ const TelephoneForm = ({
   onBlur,
   error,
   clearError,
-  setIsValid,
+  setValidator,
 }: SubFormProps) => {
   const initialTelephone = telephoneFromUrl(url);
   const [telephone, setTelephone] = useState(initialTelephone);
@@ -63,6 +63,10 @@ const TelephoneForm = ({
   const isTelephoneUrlValid = (url: string) => {
     return !!telephoneFromUrl(url).match(/\d+/);
   };
+
+  useEffect(() => {
+    setValidator(isTelephoneUrlValid);
+  }, []);
 
   return (
     <div>
@@ -75,7 +79,6 @@ const TelephoneForm = ({
           const updatedUrl = urlFromTelephone(updatedTelephone);
           setUrl(updatedUrl);
           clearError();
-          setIsValid(isTelephoneUrlValid(updatedUrl));
         }}
         onBlur={onBlur}
         onKeyPress={event => {
@@ -94,7 +97,7 @@ const EmailForm = ({
   onBlur,
   error,
   clearError,
-  setIsValid,
+  setValidator,
 }: SubFormProps) => {
   const initialEmail = emailPartsFromUrl(url);
   const [emailParts, setEmailParts] = useState(initialEmail);
@@ -104,6 +107,10 @@ const EmailForm = ({
     // TODO: real validation
     return emailParts.email !== '';
   };
+
+  useEffect(() => {
+    setValidator(isEmailUrlValid);
+  }, []);
 
   const onChange = (dataType: 'email' | 'subject' | 'body') => (
     event:
@@ -115,7 +122,6 @@ const EmailForm = ({
     const updatedUrl = urlFromEmailParts(updatedEmailParts);
     setUrl(updatedUrl);
     clearError();
-    setIsValid(isEmailUrlValid(updatedUrl));
   };
 
   return (
@@ -155,8 +161,11 @@ const Form = () => {
   );
   const [error, setError] = useState(false);
   const clearError = () => setError(false);
-  const [isValid, setIsValid] = useState(false);
+  const [validator, setValidator] = useState<null | ((url: string) => boolean)>(
+    null
+  );
 
+  const isValid = validator ? validator(url) : false;
   const validate = () => {
     setError(!isValid);
   };
@@ -179,8 +188,6 @@ const Form = () => {
         onChange={event => {
           setUrlType(event.target.value as UrlType);
           setUrl('');
-          // sucks that we need to now maintain this state
-          setIsValid(true);
         }}
       >
         {Object.keys(subForms).map(key => (
@@ -195,7 +202,7 @@ const Form = () => {
         onBlur={validate}
         error={error}
         clearError={clearError}
-        setIsValid={setIsValid}
+        setValidator={setValidator}
       />
       <button onClick={onSave}>Save</button>
     </div>
