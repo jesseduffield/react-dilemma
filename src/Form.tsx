@@ -30,22 +30,12 @@ const emailPartsFromUrl = (url: string) => {
   return { email, subject, body };
 };
 
-const isEmailUrlValid = (url: string) => {
-  const emailParts = emailPartsFromUrl(url);
-  // TODO: real validation
-  return emailParts.email !== '';
-};
-
 const telephoneFromUrl = (url: string) => {
   return url.replace('tel:', '');
 };
 
 const urlFromTelephone = (telephone: string) => {
   return `tel:${telephone}`;
-};
-
-const isTelephoneUrlValid = (url: string) => {
-  return !!telephoneFromUrl(url).match(/\d+/);
 };
 
 interface SubFormProps {
@@ -55,6 +45,7 @@ interface SubFormProps {
   onBlur: () => void;
   error: boolean;
   clearError: () => void;
+  setIsValid: (isValid: boolean) => void;
 }
 
 const TelephoneForm = ({
@@ -64,9 +55,14 @@ const TelephoneForm = ({
   onBlur,
   error,
   clearError,
+  setIsValid,
 }: SubFormProps) => {
   const initialTelephone = telephoneFromUrl(url);
   const [telephone, setTelephone] = useState(initialTelephone);
+
+  const isTelephoneUrlValid = (url: string) => {
+    return !!telephoneFromUrl(url).match(/\d+/);
+  };
 
   return (
     <div>
@@ -76,8 +72,10 @@ const TelephoneForm = ({
         onChange={event => {
           const updatedTelephone = event.target.value;
           setTelephone(updatedTelephone);
-          setUrl(urlFromTelephone(updatedTelephone));
+          const updatedUrl = urlFromTelephone(updatedTelephone);
+          setUrl(updatedUrl);
           clearError();
+          setIsValid(isTelephoneUrlValid(updatedUrl));
         }}
         onBlur={onBlur}
         onKeyPress={event => {
@@ -96,9 +94,16 @@ const EmailForm = ({
   onBlur,
   error,
   clearError,
+  setIsValid,
 }: SubFormProps) => {
   const initialEmail = emailPartsFromUrl(url);
   const [emailParts, setEmailParts] = useState(initialEmail);
+
+  const isEmailUrlValid = (url: string) => {
+    const emailParts = emailPartsFromUrl(url);
+    // TODO: real validation
+    return emailParts.email !== '';
+  };
 
   const onChange = (dataType: 'email' | 'subject' | 'body') => (
     event:
@@ -107,8 +112,10 @@ const EmailForm = ({
   ) => {
     const updatedEmailParts = { ...emailParts, [dataType]: event.target.value };
     setEmailParts(updatedEmailParts);
-    setUrl(urlFromEmailParts(updatedEmailParts));
+    const updatedUrl = urlFromEmailParts(updatedEmailParts);
+    setUrl(updatedUrl);
     clearError();
+    setIsValid(isEmailUrlValid(updatedUrl));
   };
 
   return (
@@ -126,17 +133,14 @@ const EmailForm = ({
 };
 
 interface SubForm {
-  isValid: (url: string) => boolean;
   component: React.FC<SubFormProps>;
 }
 
 const subForms = {
   email: {
-    isValid: isEmailUrlValid,
     component: EmailForm,
   },
   telephone: {
-    isValid: isTelephoneUrlValid,
     component: TelephoneForm,
   },
 };
@@ -151,8 +155,7 @@ const Form = () => {
   );
   const [error, setError] = useState(false);
   const clearError = () => setError(false);
-
-  const isValid = subForm.isValid(url);
+  const [isValid, setIsValid] = useState(false);
 
   const validate = () => {
     setError(!isValid);
@@ -176,6 +179,8 @@ const Form = () => {
         onChange={event => {
           setUrlType(event.target.value as UrlType);
           setUrl('');
+          // sucks that we need to now maintain this state
+          setIsValid(true);
         }}
       >
         {Object.keys(subForms).map(key => (
@@ -190,6 +195,7 @@ const Form = () => {
         onBlur={validate}
         error={error}
         clearError={clearError}
+        setIsValid={setIsValid}
       />
       <button onClick={onSave}>Save</button>
     </div>
