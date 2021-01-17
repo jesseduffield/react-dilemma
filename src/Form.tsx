@@ -1,83 +1,5 @@
 import { useEffect, useState } from 'react';
 
-type UrlType = 'email' | 'telephone';
-
-const Form = () => {
-  const [urlType, setUrlType] = useState<UrlType>('email');
-  const [url, setUrl] = useState<string>(
-    'mailto:me@gmail.com?subject=subject&body=body'
-  );
-  const [error, setError] = useState(false);
-  const clearError = () => setError(false);
-
-  const isValid = (() => {
-    switch (urlType) {
-      case 'email':
-        return isEmailUrlValid(url);
-      case 'telephone':
-        return isTelephoneUrlValid(url);
-    }
-  })();
-
-  const validate = () => {
-    setError(!isValid);
-  };
-
-  const onSave = () => {
-    validate();
-    if (isValid) {
-      alert(`Saved url ${url}`);
-    } else {
-      alert(`invalid url: ${url}`);
-    }
-  };
-
-  const subForm = (() => {
-    switch (urlType) {
-      case 'email':
-        return (
-          <EmailForm
-            url={url}
-            setUrl={setUrl}
-            onSave={onSave}
-            onBlur={validate}
-            error={error}
-            clearError={clearError}
-          />
-        );
-      case 'telephone':
-        return (
-          <TelephoneForm
-            url={url}
-            setUrl={setUrl}
-            onSave={onSave}
-            onBlur={validate}
-            error={error}
-            clearError={clearError}
-          />
-        );
-    }
-  })();
-
-  return (
-    <div>
-      <select
-        value={urlType}
-        onChange={event => {
-          setUrlType(event.target.value as UrlType);
-          setUrl('');
-        }}
-      >
-        <option value="email" label="email" />
-        <option value="telephone" label="telephone" />
-      </select>
-      {url}
-      {subForm}
-      <button onClick={onSave}>Save</button>
-    </div>
-  );
-};
-
 const urlFromEmailParts = ({
   email,
   subject,
@@ -97,7 +19,6 @@ const emailPartsFromUrl = (url: string) => {
   try {
     parsedUrl = new URL(url);
   } catch (e) {
-    console.error(e);
     return { email: '', subject: '', body: '' };
   }
 
@@ -124,7 +45,7 @@ const urlFromTelephone = (telephone: string) => {
 };
 
 const isTelephoneUrlValid = (url: string) => {
-  return telephoneFromUrl(url).match(/\d+/);
+  return !!telephoneFromUrl(url).match(/\d+/);
 };
 
 interface SubFormProps {
@@ -172,13 +93,11 @@ const TelephoneForm = ({
 const EmailForm = ({
   url,
   setUrl,
-  onSave,
   onBlur,
   error,
   clearError,
 }: SubFormProps) => {
   const initialEmail = emailPartsFromUrl(url);
-
   const [emailParts, setEmailParts] = useState(initialEmail);
 
   const onChange = (dataType: 'email' | 'subject' | 'body') => (
@@ -202,6 +121,77 @@ const EmailForm = ({
       />
       <input value={emailParts.subject} onChange={onChange('subject')} />
       <textarea value={emailParts.body} onChange={onChange('body')} />
+    </div>
+  );
+};
+
+interface SubForm {
+  isValid: (url: string) => boolean;
+  component: React.FC<SubFormProps>;
+}
+
+const subForms = {
+  email: {
+    isValid: isEmailUrlValid,
+    component: EmailForm,
+  },
+  telephone: {
+    isValid: isTelephoneUrlValid,
+    component: TelephoneForm,
+  },
+};
+
+type UrlType = keyof typeof subForms;
+
+const Form = () => {
+  const [urlType, setUrlType] = useState<UrlType>('email');
+  const subForm = subForms[urlType];
+  const [url, setUrl] = useState<string>(
+    'mailto:me@gmail.com?subject=subject&body=body'
+  );
+  const [error, setError] = useState(false);
+  const clearError = () => setError(false);
+
+  const isValid = subForm.isValid(url);
+
+  const validate = () => {
+    setError(!isValid);
+  };
+
+  const onSave = () => {
+    validate();
+    if (isValid) {
+      alert(`Saved url ${url}`);
+    } else {
+      alert(`invalid url: ${url}`);
+    }
+  };
+
+  const SubformComponent = subForm.component;
+
+  return (
+    <div>
+      <select
+        value={urlType}
+        onChange={event => {
+          setUrlType(event.target.value as UrlType);
+          setUrl('');
+        }}
+      >
+        {Object.keys(subForms).map(key => (
+          <option key={key} value={key} label={key} />
+        ))}
+      </select>
+      {url}
+      <SubformComponent
+        url={url}
+        setUrl={setUrl}
+        onSave={onSave}
+        onBlur={validate}
+        error={error}
+        clearError={clearError}
+      />
+      <button onClick={onSave}>Save</button>
     </div>
   );
 };
