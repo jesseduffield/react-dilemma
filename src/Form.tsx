@@ -3,8 +3,10 @@ import { useEffect, useState } from 'react';
 type UrlType = 'email' | 'telephone';
 
 const Form = () => {
-  const [urlType, setUrlType] = useState<UrlType>('telephone');
-  const [url, setUrl] = useState<string>('');
+  const [urlType, setUrlType] = useState<UrlType>('email');
+  const [url, setUrl] = useState<string>(
+    'mailto:me@gmail.com?subject=subject&body=body'
+  );
   const [error, setError] = useState(false);
   const clearError = () => setError(false);
 
